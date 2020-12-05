@@ -62,7 +62,7 @@ public class Impresora {
                 System.out.println("\u001B[32m"+"bufferPrimario Finito: El hilo escritor "+nombreHilo+" termino de escribir el dato: "+dato+ "\u001B[0m");
                 semEscFin.release();
             }
-            else
+            else // buffer finito lleno, escribe en el infinito
             {   semEscFin.release();
                 semEscInf.acquire();  
                 bufferSecundario.add(objDato);
@@ -70,10 +70,11 @@ public class Impresora {
                 semEscInf.release();
             } ; 
             
-            if (contar_datos>0)
+            /*codigo original: if (contar_datos>0)
             {   
                 semImpr.release(); 
-            } 
+            } */
+            semImpr.release(); // correccion nueva
 
             // codigo original: miCerrojo.unlock();
             // fin seccion critica                                               
@@ -93,16 +94,14 @@ public class Impresora {
     {
         bufferSecundario.remove(0); // lo elimino del buffer ilimitado
         contar_datos--;
-        System.out.println("\u001B[34m" +"buffer infinito1: El hilo de escritura  imprime: "+objRecurso2.dato +"\u001B[0m");
+        System.out.println("\u001B[34m" +"buffer infinito: El hilo de escritura  imprime: "+objRecurso2.dato +"\u001B[0m");
     }
   }
     public void imprimirDato() throws InterruptedException {
-        semImpr.acquire(1);
-       
-        orden_impresion++;
-        
+        semImpr.acquire();       
+        orden_impresion++;        
         if (! bufferPrimario.isEmpty())
-        {
+        {   semEscFin.acquire();  //cambio nuevo: bloqueamos el buffer finito, ya que se hacen modificaciones desde la escritura
             Recurso objRecurso=bufferPrimario.get(0);
 
             if (objRecurso.orden == orden_impresion)
@@ -110,10 +109,11 @@ public class Impresora {
                 bufferPrimario.remove(0); // lo elimino del buffer limitado
                 num_buffer_lim--;
                 contar_datos--;
-                System.out.println("\u001B[34m" +"buffer finito: El hilo de escritura  imprime: "+objRecurso.dato +"\u001B[0m");
+                System.out.println("\u001B[34m" +"buffer finito: El hilo de escritura  imprime: "+objRecurso.dato +"\u001B[0m");                
+                semEscFin.release();  //desbloqueamos el buffer finito, ya que se hacen modificaciones desde la escritura   
             } 
             else // buscamos el dato en el buffer infinito
-            {
+            {   semEscFin.release();  //desbloqueamos el buffer finito, ya que se hacen modificaciones desde la escritura   
                 imprimirDatoBufferInf();
                 /* codigo original:
                 Recurso objRecurso2=bufferSecundario.get(0);
@@ -123,7 +123,8 @@ public class Impresora {
                     contar_datos--;
                     System.out.println("\u001B[34m" +"buffer infinito1: El hilo de escritura  imprime: "+objRecurso2.dato +"\u001B[0m");
                 }*/
-            }    
+            };
+            
 
         }
         else // buscamos el dato en el buffer infinito
