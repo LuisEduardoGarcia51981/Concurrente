@@ -27,6 +27,7 @@ public class GeneradordeAgua {
     private int recipiente;
     private int capmaxrecipiente;
     private boolean noHayRecipiente;
+    Lock miCerrojo=new ReentrantLock();
     
 
     public GeneradordeAgua(int capacidadMaxRecipiente)
@@ -37,23 +38,27 @@ public class GeneradordeAgua {
         this.moleculasOxigeno=0 ;
         this.noHayRecipiente=true;
     }
-    public void oListo() {       
+    public void oListo() {    
+        miCerrojo.lock();   
         this.moleculasOxigeno++;        
         System.out.println(ANSI_BLUE+"Procesando Oxigeno: "+this.moleculasOxigeno+ANSI_RESET);
         
         if (this.moleculasHidrogeno>=2)
         {
             hacerAgua();
-        }        
+        }       
+        miCerrojo.unlock(); 
     }
     public void hListo() {
+        miCerrojo.lock();   
         this.moleculasHidrogeno++;
         System.out.println(ANSI_GREEN+"Procesando Hidrogeno"+this.moleculasHidrogeno+ANSI_RESET);
                 
         if ((this.moleculasHidrogeno>=2) && (this.moleculasOxigeno >=1))
         {
             this.hacerAgua();
-        }        
+        }  
+        miCerrojo.unlock();       
     }
 
     public void hacerAgua()
